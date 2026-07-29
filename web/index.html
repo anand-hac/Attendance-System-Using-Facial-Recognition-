@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face Recognition Attendance Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand-section">
+        <div class="brand-icon">FR</div>
+        <div class="brand-title">
+          <h1>FRAS Portal</h1>
+          <span>Smart Attendance</span>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li>
+          <a class="nav-item active" data-target="dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="9"></rect>
+              <rect x="14" y="3" width="7" height="5"></rect>
+              <rect x="14" y="12" width="7" height="9"></rect>
+              <rect x="3" y="16" width="7" height="5"></rect>
+            </svg>
+            Dashboard
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-target="check-camera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            Check Camera
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-target="register">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            Register Student
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-target="train">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+            </svg>
+            Train Model
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-target="recognize">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            Live Recognition
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-target="logs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Attendance Logs
+          </a>
+        </li>
+        <li>
+          <a class="nav-item" data-target="settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Settings
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <p>FRAS Web Portal v2.0</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="main-content">
+
+      <!-- ================= DASHBOARD VIEW ================= -->
+      <section id="dashboard" class="page-view active">
+        <div class="page-header">
+          <h2>Analytics Overview</h2>
+          <p>Real-time system health and registration statistics.</p>
+        </div>
+
+        <div class="card-grid">
+          <div class="stats-card">
+            <div class="stats-info">
+              <h4>Total Registered</h4>
+              <div class="value" id="stats-total-students">0</div>
+              <div class="trend positive">Students Registered</div>
+            </div>
+            <div class="stats-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+          </div>
+
+          <div class="stats-card">
+            <div class="stats-info">
+              <h4>Present Today</h4>
+              <div class="value" id="stats-present-today">0</div>
+              <div class="trend positive" id="stats-present-rate">0% Attendance</div>
+            </div>
+            <div class="stats-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            </div>
+          </div>
+
+          <div class="stats-card">
+            <div class="stats-info">
+              <h4>Model Status</h4>
+              <div class="value text-success" id="stats-model-status">Untrained</div>
+              <div class="trend neutral" id="stats-model-details">No trainer.yml detected</div>
+            </div>
+            <div class="stats-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-layout">
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Recent Attendance Records</h3>
+              <button class="btn btn-secondary" onclick="app.switchTab('logs')">View All</button>
+            </div>
+            <div class="table-container">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-recent-table">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted);">No records registered today.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Quick Actions</h3>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button class="btn btn-primary" onclick="app.switchTab('recognize')">Launch Recognition Cam</button>
+              <button class="btn btn-secondary" onclick="app.switchTab('register')">Add New Student</button>
+              <button class="btn btn-secondary" onclick="app.switchTab('train')">Train Recognizer Model</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= CHECK CAMERA VIEW ================= -->
+      <section id="check-camera" class="page-view">
+        <div class="page-header">
+          <h2>Check Camera Connection</h2>
+          <p>Verify webcam streams and align the camera for facial detection scans.</p>
+        </div>
+
+        <div class="registration-container">
+          <div class="camera-card">
+            <video id="camera-check-video" class="camera-stream" autoplay muted playsinline></video>
+            <div id="camera-check-placeholder" class="camera-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+              <p>Webcam stream is inactive</p>
+            </div>
+          </div>
+
+          <div class="dashboard-panel">
+            <h3 class="panel-title" style="margin-bottom: 16px;">Diagnostic Controls</h3>
+            <div class="setup-step">
+              <div class="step-number">1</div>
+              <div class="step-text">
+                <h4>Activate Stream</h4>
+                <p>Click "Start Camera" to request browser webcam permissions.</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-number">2</div>
+              <div class="step-text">
+                <h4>Align Bounds</h4>
+                <p>Position face within the camera boundaries. Make sure lighting is uniform.</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px; display: flex; gap: 12px;">
+              <button class="btn btn-primary" id="btn-start-check-cam">Start Camera</button>
+              <button class="btn btn-secondary" id="btn-stop-check-cam" disabled>Stop Camera</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= REGISTER STUDENT VIEW ================= -->
+      <section id="register" class="page-view">
+        <div class="page-header">
+          <h2>Register Student Profile</h2>
+          <p>Capture facial image datasets and record enrollment credentials.</p>
+        </div>
+
+        <div id="registration-form-view">
+          <div class="registration-container">
+            <div class="dashboard-panel" style="margin-bottom: 0;">
+              <h3 class="panel-title" style="margin-bottom: 20px;">Profile Credentials</h3>
+              
+              <div class="form-group">
+                <label class="form-label" for="reg-student-id">Student ID (Numeric)</label>
+                <input type="text" class="form-input" id="reg-student-id" placeholder="e.g. 102">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="reg-student-name">Full Name (Alphabetical)</label>
+                <input type="text" class="form-input" id="reg-student-name" placeholder="e.g. Jane Doe">
+              </div>
+
+              <div style="margin-top: 24px;">
+                <button class="btn btn-primary" id="btn-begin-registration">Initiate Face Scanner</button>
+              </div>
+            </div>
+
+            <div class="dashboard-panel" style="margin-bottom: 0;">
+              <h3 class="panel-title" style="margin-bottom: 16px;">Enrollment Protocol</h3>
+              <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                The system will automatically record 100 grayscale facial crops under variable micro-positions once the scanner is triggered.
+              </p>
+              <div class="setup-step">
+                <div class="step-number">✓</div>
+                <div class="step-text">
+                  <h4>Unique ID Assignment</h4>
+                  <p>IDs must be distinct numeric integers to train the recognizer matrices.</p>
+                </div>
+              </div>
+              <div class="setup-step">
+                <div class="step-number">✓</div>
+                <div class="step-text">
+                  <h4>Image Samples Capture</h4>
+                  <p>Saves 100 crops mapped into database indices.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scanning Mode (Appears after clicking register) -->
+        <div id="registration-scanning-view" style="display: none;">
+          <div class="registration-container">
+            <div class="camera-card">
+              <video id="camera-reg-video" class="camera-stream" autoplay muted playsinline></video>
+              <canvas id="canvas-reg-overlay" class="canvas-overlay"></canvas>
+              
+              <div class="scanner-grid active">
+                <div class="scanner-laser"></div>
+                <div class="scanner-corners">
+                  <div class="scanner-corners-inner"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="dashboard-panel" style="margin-bottom: 0;">
+              <h3 class="panel-title" id="scan-progress-title">Scanning Face Fields...</h3>
+              <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">
+                Hold steady. Moving your head slightly helps the recognizer catalog diverse lighting profiles.
+              </p>
+
+              <div class="progress-container">
+                <div class="progress-bar" id="reg-progress-bar"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 16px;">
+                <span id="scan-count-text">0 / 100 Frames</span>
+                <span id="scan-percent-text">0% Complete</span>
+              </div>
+
+              <div class="console-box" id="reg-console">
+                <div class="log-entry">Initializing imaging pipeline...</div>
+              </div>
+
+              <div style="margin-top: 24px;">
+                <button class="btn btn-secondary" id="btn-cancel-registration">Abort Scanning</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success Screen -->
+        <div id="registration-success-view" class="success-screen">
+          <div class="success-icon">✓</div>
+          <h3>Enrollment Complete</h3>
+          <p id="success-message">Student has been registered into StudentDetails.csv.</p>
+          <button class="btn btn-primary" onclick="app.resetRegistrationForm()">Register Another</button>
+          <button class="btn btn-secondary" onclick="app.switchTab('train')">Proceed to Training</button>
+        </div>
+      </section>
+
+      <!-- ================= TRAIN MODEL VIEW ================= -->
+      <section id="train" class="page-view">
+        <div class="page-header">
+          <h2>Train LBPH Recognizer</h2>
+          <p>Compute local histogram algorithms using registered training datasets.</p>
+        </div>
+
+        <div class="registration-container">
+          <div class="dashboard-panel" style="margin-bottom: 0;">
+            <h3 class="panel-title" style="margin-bottom: 16px;">Training Console</h3>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 24px;">
+              Loads image datasets from indices and computes local binary vector histogram maps to generate `Trainner.yml`.
+            </p>
+
+            <button class="btn btn-primary btn-lg" id="btn-start-training" style="width: 100%;">
+              ⚡ Execute Training Script
+            </button>
+
+            <div id="training-process-section" style="display: none; margin-top: 24px;">
+              <div class="progress-container">
+                <div class="progress-bar" id="train-progress-bar"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 16px;">
+                <span id="train-step-text">Preparing data logs...</span>
+                <span id="train-percent-text">0%</span>
+              </div>
+            </div>
+
+            <div class="console-box" id="train-console" style="margin-top: 16px; height: 220px;">
+              <div class="log-entry">Ready to execute training module.</div>
+            </div>
+          </div>
+
+          <div class="dashboard-panel" style="margin-bottom: 0;">
+            <h3 class="panel-title" style="margin-bottom: 16px;">LBPH Algorithm Diagnostics</h3>
+            <div class="setup-step">
+              <div class="step-number">1</div>
+              <div class="step-text">
+                <h4>Image Parsing</h4>
+                <p>Loads greyscale images from training folders and parses target labels mapped from student IDs.</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-number">2</div>
+              <div class="step-text">
+                <h4>LBP Histogram Extraction</h4>
+                <p>Calculates spatial structures in $3 \times 3$ grid arrays. Converts matrix values into localized binary codes.</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <div class="step-number">3</div>
+              <div class="step-text">
+                <h4>Save Model Matrix</h4>
+                <p>Outputs compiled calculations into `TrainingImageLabel/Trainner.yml` weights file.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= RECOGNIZE & ATTEND VIEW ================= -->
+      <section id="recognize" class="page-view">
+        <div class="page-header">
+          <h2>Live Face Recognition</h2>
+          <p>Verify facial matrices in camera feeds to record real-time attendance logs.</p>
+        </div>
+
+        <div class="dashboard-layout">
+          <div>
+            <div class="camera-card">
+              <video id="camera-rec-video" class="camera-stream" autoplay muted playsinline></video>
+              <canvas id="canvas-rec-overlay" class="canvas-overlay"></canvas>
+              
+              <div class="scanner-grid" id="rec-scanner-grid">
+                <div class="scanner-laser"></div>
+                <div class="scanner-corners">
+                  <div class="scanner-corners-inner"></div>
+                </div>
+              </div>
+              
+              <div id="camera-rec-placeholder" class="camera-placeholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                <p>Recognition camera stream inactive</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 12px;">
+              <button class="btn btn-primary" id="btn-start-rec">Start Stream Scanner</button>
+              <button class="btn btn-secondary" id="btn-stop-rec" disabled>Shutdown Camera</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="dashboard-panel" style="margin-bottom: 0; min-height: 400px; display: flex; flex-direction: column;">
+              <div class="panel-header">
+                <h3 class="panel-title">Session Attendance Log</h3>
+                <span class="badge badge-success" id="rec-stream-status">Inactive</span>
+              </div>
+              
+              <div class="live-activity-list" id="session-log-list" style="flex-grow: 1;">
+                <div style="text-align: center; color: var(--text-muted); margin-top: 80px; font-size: 13px;">
+                  Start stream to verify users.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ATTENDANCE LOGS VIEW ================= -->
+      <section id="logs" class="page-view">
+        <div class="page-header">
+          <h2>Attendance Log Registry</h2>
+          <p>Search, filter, and export logged daily attendance CSV reports.</p>
+        </div>
+
+        <div class="dashboard-panel">
+          <div class="filter-bar">
+            <input type="text" class="form-input filter-input" id="log-search-input" placeholder="Search by student name...">
+            <input type="date" class="form-input filter-input" id="log-date-filter">
+            <button class="btn btn-secondary" id="btn-clear-filters">Reset Filters</button>
+            
+            <div style="margin-left: auto; display: flex; gap: 12px;">
+              <button class="btn btn-secondary" id="btn-export-csv">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export CSV
+              </button>
+              <button class="btn btn-primary" id="btn-trigger-email">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                Auto Mail Report
+              </button>
+            </div>
+          </div>
+
+          <div class="table-container">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Student ID</th>
+                  <th>Name</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="logs-table-body">
+                <!-- Dynamically filled by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SETTINGS VIEW ================= -->
+      <section id="settings" class="page-view">
+        <div class="page-header">
+          <h2>Portal Settings</h2>
+          <p>Configure general parameters, hardware streams, and email mailers.</p>
+        </div>
+
+        <div class="registration-container">
+          <div class="dashboard-panel">
+            <h3 class="panel-title" style="margin-bottom: 20px;">Email Service Configuration (SMTP)</h3>
+            <div class="form-group">
+              <label class="form-label" for="settings-sender-email">Sender Gmail</label>
+              <input type="email" class="form-input" id="settings-sender-email" value="youremail@email.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-app-password">App-Specific Password</label>
+              <input type="password" class="form-input" id="settings-app-password" value="••••••••••••••••">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-receiver-email">Recipient Email</label>
+              <input type="email" class="form-input" id="settings-receiver-email" value="recipient@email.com">
+            </div>
+            <button class="btn btn-primary" id="btn-save-smtp">Save Email Settings</button>
+          </div>
+
+          <div class="dashboard-panel">
+            <h3 class="panel-title" style="margin-bottom: 20px;">Algorithm Parameters</h3>
+            <div class="form-group">
+              <label class="form-label" for="settings-threshold">Confidence Matching Threshold (%)</label>
+              <input type="number" class="form-input" id="settings-threshold" value="67" min="1" max="100">
+              <p style="color: var(--text-muted); font-size: 11px; margin-top: 6px;">
+                Higher thresholds are stricter and reduce false positives (standard range: 60% - 75%).
+              </p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-camera-id">Default Camera Device</label>
+              <select class="form-input" id="settings-camera-id">
+                <option value="0">Default System Camera (ID: 0)</option>
+                <option value="1">Secondary Webcam (ID: 1)</option>
+              </select>
+            </div>
+            <button class="btn btn-secondary" id="btn-restore-defaults">Restore Defaults</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- App Main Core JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
