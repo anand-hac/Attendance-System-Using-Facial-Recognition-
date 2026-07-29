@@ -1,1 +1,27 @@
-env
+# Virtual environments
+env/
+venv/
+env*
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+backend/__pycache__/
+FRAS/__pycache__/
+
+# Application generated datasets & privacy data
+TrainingImage/
+TrainingImageLabel/
+StudentDetails/
+Attendance/
+
+# IDE files & settings
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

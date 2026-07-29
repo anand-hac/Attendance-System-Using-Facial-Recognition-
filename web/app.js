@@ -1,43 +1,45 @@
 /**
  * FRAS Core Application Script
- * Face Recognition Attendance System Portal Logic
+ * Decoupled Web Portal Logic (Vercel Frontend + Render Backend)
  */
 
 class FRASPortal {
   constructor() {
-    this.students = JSON.parse(localStorage.getItem('fras_students')) || [
+    this.students = [];
+    this.logs = [];
+    this.modelTrained = false;
+    this.activeStream = null;
+    
+    // API connection state
+    this.backendUrl = localStorage.getItem('fras_backend_url') || '';
+    this.isConnected = false;
+
+    // Running states
+    this.recognitionActive = false;
+    this.registrationActive = false;
+    this.recognitionInterval = null;
+    this.sessionLogs = [];
+
+    // Local Mock Fallback values (if offline / no backend url configured)
+    this.mockStudents = [
       { id: 101, name: 'Adeetya Upadhyay' },
       { id: 102, name: 'Shreyas More' },
       { id: 103, name: 'Ciro Iriarte' }
     ];
 
-    // Mock some yesterday attendance logs, and active session logs
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-    this.logs = JSON.parse(localStorage.getItem('fras_logs')) || [
+    this.mockLogs = [
       { id: 101, name: 'Adeetya Upadhyay', date: yesterdayStr, time: '09:05:12', status: 'Present' },
       { id: 102, name: 'Shreyas More', date: yesterdayStr, time: '09:12:44', status: 'Present' },
       { id: 103, name: 'Ciro Iriarte', date: yesterdayStr, time: '09:15:02', status: 'Present' }
     ];
 
-    this.modelTrained = localStorage.getItem('fras_model_trained') === 'true';
-    if (localStorage.getItem('fras_model_trained') === null) {
-      this.modelTrained = true; // Default students are pre-trained
-      localStorage.setItem('fras_model_trained', 'true');
-    }
-
-    this.activeStream = null;
-    this.recognitionActive = false;
-    this.registrationActive = false;
-    this.recognitionInterval = null;
-    this.sessionLogs = []; // Temporary logs for current recognition session
-
     this.initElements();
     this.initEvents();
-    this.updateStats();
-    this.renderLogsTable();
+    this.loadState();
   }
 
   initElements() {
@@ -108,6 +110,11 @@ class FRASPortal {
     this.inputSMTPHost = document.getElementById('settings-sender-email');
     this.inputSMTPReceiver = document.getElementById('settings-receiver-email');
     this.inputThreshold = document.getElementById('settings-threshold');
+
+    // Render Backend API inputs
+    this.inputBackendUrl = document.getElementById('settings-backend-url');
+    this.btnSaveBackend = document.getElementById('btn-save-backend');
+    this.statusConnection = document.getElementById('settings-connection-status');
   }
 
   initEvents() {
@@ -150,14 +157,99 @@ class FRASPortal {
 
     // Save configurations
     this.btnSaveSMTP.addEventListener('click', () => {
-      alert('SMTP details configured! Credentials securely locked in virtual keystore.');
+      alert('SMTP credentials saved locally.');
     });
+    
     this.btnRestoreDefaults.addEventListener('click', () => {
       if(confirm('Reset database to default mock configurations?')) {
         localStorage.clear();
         location.reload();
       }
     });
+
+    // Save Render Backend API
+    this.btnSaveBackend.addEventListener('click', () => {
+      const url = this.inputBackendUrl.value.trim().replace(/\/$/, "");
+      this.backendUrl = url;
+      localStorage.setItem('fras_backend_url', url);
+      this.testBackendConnection();
+    });
+  }
+
+  async loadState() {
+    // Sync UI value
+    this.inputBackendUrl.value = this.backendUrl;
+    await this.testBackendConnection();
+    this.updateStats();
+  }
+
+  async testBackendConnection() {
+    if (!this.backendUrl) {
+      this.isConnected = false;
+      this.statusConnection.textContent = "Local Simulation Mode";
+      this.statusConnection.className = "badge badge-warning";
+      
+      // Pull from LocalStorage / Mock fallback
+      this.students = JSON.parse(localStorage.getItem('fras_students')) || [...this.mockStudents];
+      this.logs = JSON.parse(localStorage.getItem('fras_logs')) || [...this.mockLogs];
+      this.modelTrained = localStorage.getItem('fras_model_trained') !== 'false';
+      this.updateStats();
+      return;
+    }
+
+    this.statusConnection.textContent = "Connecting to API...";
+    this.statusConnection.className = "badge badge-warning";
+
+    try {
+      const res = await fetch(`${this.backendUrl}/api/status`, {
+        signal: AbortSignal.timeout(5000) // 5s timeout
+      });
+      const data = await res.json();
+      
+      if (data.status === "online") {
+        this.isConnected = true;
+        this.statusConnection.textContent = "Connected to Render Backend";
+        this.statusConnection.className = "badge badge-success";
+        this.modelTrained = data.model_trained;
+        
+        // Fetch values from server
+        await this.syncDataWithBackend();
+      } else {
+        throw new Error("Offline response");
+      }
+    } catch (err) {
+      console.error("Connection Failed:", err);
+      this.isConnected = false;
+      this.statusConnection.textContent = "Connection Failed / Offline";
+      this.statusConnection.className = "badge badge-danger";
+      
+      // Fallback
+      this.students = JSON.parse(localStorage.getItem('fras_students')) || [...this.mockStudents];
+      this.logs = JSON.parse(localStorage.getItem('fras_logs')) || [...this.mockLogs];
+      this.modelTrained = localStorage.getItem('fras_model_trained') !== 'false';
+    }
+    this.updateStats();
+  }
+
+  async syncDataWithBackend() {
+    if (!this.isConnected) return;
+    try {
+      // Sync Students
+      const studentRes = await fetch(`${this.backendUrl}/api/students`);
+      const studentData = await studentRes.json();
+      if (studentData.success) {
+        this.students = studentData.students;
+      }
+
+      // Sync Logs
+      const logsRes = await fetch(`${this.backendUrl}/api/logs`);
+      const logsData = await logsRes.json();
+      if (logsData.success) {
+        this.logs = logsData.logs;
+      }
+    } catch (e) {
+      console.error("Sync data failed:", e);
+    }
   }
 
   // Handle SPA Tab Switching cleanly, releasing system webcam hooks
@@ -174,6 +266,10 @@ class FRASPortal {
       view.classList.toggle('active', view.getAttribute('id') === tabId);
     });
 
+    // Refresh states
+    if (this.isConnected) {
+      await this.syncDataWithBackend();
+    }
     this.updateStats();
     if (tabId === 'logs') {
       this.renderLogsTable();
@@ -195,14 +291,13 @@ class FRASPortal {
     if (this.modelTrained) {
       this.statModelStatus.textContent = 'Active Model';
       this.statModelStatus.className = 'value text-success';
-      this.statModelDetails.textContent = 'Trainner.yml compiled successfully';
+      this.statModelDetails.textContent = this.isConnected ? 'Trainner.yml loaded on server' : 'Trainner.yml loaded locally';
     } else {
       this.statModelStatus.textContent = 'Untrained';
       this.statModelStatus.className = 'value text-warning';
-      this.statModelDetails.textContent = 'Unsaved registration updates pending';
+      this.statModelDetails.textContent = 'Unsaved registry updates pending';
     }
 
-    // Render recent dashboard list
     this.renderDashboardRecent();
   }
 
@@ -231,6 +326,16 @@ class FRASPortal {
       this.activeStream.getTracks().forEach(track => track.stop());
       this.activeStream = null;
     }
+  }
+
+  // Capture current video frame as JPEG base64 payload
+  captureVideoFrame(videoEl) {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = videoEl.videoWidth || 640;
+    tempCanvas.height = videoEl.videoHeight || 480;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(videoEl, 0, 0, tempCanvas.width, tempCanvas.height);
+    return tempCanvas.toDataURL('image/jpeg', 0.8);
   }
 
   // --- Diagnostics Tab ---
@@ -270,6 +375,25 @@ class FRASPortal {
       return;
     }
 
+    // Initialize registration status in backend
+    if (this.isConnected) {
+      try {
+        const regRes = await fetch(`${this.backendUrl}/api/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, name })
+        });
+        const regData = await regRes.json();
+        if (!regData.success) {
+          alert(`Server Registration Failed: ${regData.message}`);
+          return;
+        }
+      } catch (err) {
+        alert(`API communication failed: ${err.message}`);
+        return;
+      }
+    }
+
     // Prepare views
     this.viewForm.style.display = 'none';
     this.viewScanning.style.display = 'block';
@@ -283,7 +407,7 @@ class FRASPortal {
       return;
     }
 
-    // Setup Canvas and logging
+    // Setup Canvas
     this.canvasReg.width = this.videoReg.clientWidth || 640;
     this.canvasReg.height = this.videoReg.clientHeight || 480;
     this.regConsole.innerHTML = '<div class="log-entry">[SYSTEM] Initializing video frames...</div>';
@@ -299,73 +423,124 @@ class FRASPortal {
     
     this.regConsole.innerHTML += `<div class="log-entry">[INFO] Initializing capture pipeline for ID:${id} - ${name}</div>`;
     
-    const captureLoop = setInterval(() => {
+    const captureIntervalTime = this.isConnected ? 160 : 60; // Slower interval for API roundtrips
+    
+    const captureLoop = setInterval(async () => {
       if (!this.registrationActive) {
         clearInterval(captureLoop);
         return;
       }
 
-      frameCount++;
-      
-      // Update UI Progress
-      const percent = Math.min(Math.round((frameCount / maxFrames) * 100), 100);
-      this.regProgressBar.style.width = `${percent}%`;
-      this.scanCountText.textContent = `${frameCount} / ${maxFrames} Frames`;
-      this.scanPercentText.textContent = `${percent}%`;
+      // Grab base64 image frame
+      const frameData = this.captureVideoFrame(this.videoReg);
 
-      // Log progress to virtual CLI console
-      if (frameCount % 10 === 0) {
-        this.regConsole.innerHTML += `<div class="log-entry">[INFO] Captured ${frameCount} face samples. Calculating haar cascade crop bounds...</div>`;
-        this.regConsole.scrollTop = this.regConsole.scrollHeight;
+      if (this.isConnected) {
+        // --- ONLINE MODE: Send to Render server ---
+        try {
+          const uploadRes = await fetch(`${this.backendUrl}/api/upload_face`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: id,
+              name: name,
+              image: frameData,
+              sampleNum: frameCount + 1
+            })
+          });
+          const uploadData = await uploadRes.json();
+          
+          if (uploadData.success) {
+            frameCount++;
+            
+            // Draw matching bounding box returned by OpenCV on the server
+            ctx.clearRect(0, 0, this.canvasReg.width, this.canvasReg.height);
+            if (uploadData.box) {
+              const { x, y, width, height } = uploadData.box;
+              ctx.strokeStyle = '#10B981'; // Green for detected face
+              ctx.lineWidth = 3;
+              ctx.strokeRect(x, y, width, height);
+              ctx.fillStyle = '#10B981';
+              ctx.font = '11px Courier New';
+              ctx.fillText(`FACE DETECTED [${x},${y}]`, x, y - 8);
+            }
+            
+            // Update Progress
+            this.updateRegistrationProgress(frameCount, maxFrames);
+            
+            if (frameCount % 5 === 0) {
+              this.regConsole.innerHTML += `<div class="log-entry success">[SERVER] Saved face crop sample ${frameCount}/100.</div>`;
+              this.regConsole.scrollTop = this.regConsole.scrollHeight;
+            }
+          } else {
+            // No face detected, output warning in console
+            this.regConsole.innerHTML += `<div class="log-entry warning">[WARNING] ${uploadData.message || "No face located."} Adjust position.</div>`;
+            this.regConsole.scrollTop = this.regConsole.scrollHeight;
+          }
+        } catch (e) {
+          this.regConsole.innerHTML += `<div class="log-entry warning">[API ERROR] Failed sending payload to server. Retrying...</div>`;
+          this.regConsole.scrollTop = this.regConsole.scrollHeight;
+        }
+
+      } else {
+        // --- OFFLINE SIMULATION MODE ---
+        frameCount++;
+        this.updateRegistrationProgress(frameCount, maxFrames);
+
+        if (frameCount % 10 === 0) {
+          this.regConsole.innerHTML += `<div class="log-entry">[INFO] Captured ${frameCount} face samples. Calculating mock boundaries...</div>`;
+          this.regConsole.scrollTop = this.regConsole.scrollHeight;
+        }
+
+        ctx.clearRect(0, 0, this.canvasReg.width, this.canvasReg.height);
+        const boxSize = 200;
+        const jitterX = Math.sin(frameCount * 0.5) * 8;
+        const jitterY = Math.cos(frameCount * 0.5) * 5;
+        const x = (this.canvasReg.width - boxSize) / 2 + jitterX;
+        const y = (this.canvasReg.height - boxSize) / 2 + jitterY;
+
+        ctx.strokeStyle = '#00F2FE';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, boxSize, boxSize);
+        ctx.fillStyle = '#00F2FE';
+        ctx.font = '11px Courier New';
+        ctx.fillText(`SIMULATED BOX: [${Math.round(x)}, ${Math.round(y)}]`, x, y - 8);
       }
 
-      // Draw simulated bounding box on canvas
-      ctx.clearRect(0, 0, this.canvasReg.width, this.canvasReg.height);
-      
-      // Add slight jitter to face crop bounding box to simulate actual real-time tracking
-      const boxSize = 200;
-      const jitterX = Math.sin(frameCount * 0.5) * 8;
-      const jitterY = Math.cos(frameCount * 0.5) * 5;
-      const x = (this.canvasReg.width - boxSize) / 2 + jitterX;
-      const y = (this.canvasReg.height - boxSize) / 2 + jitterY;
-
-      ctx.strokeStyle = '#00F2FE';
-      ctx.lineWidth = 3;
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = 'rgba(0, 242, 254, 0.5)';
-      ctx.strokeRect(x, y, boxSize, boxSize);
-      
-      // Text coordinates overlay
-      ctx.fillStyle = '#00F2FE';
-      ctx.font = '12px Courier New';
-      ctx.shadowBlur = 0;
-      ctx.fillText(`CROP: [${Math.round(x)}, ${Math.round(y)}, ${boxSize}, ${boxSize}]`, x, y - 10);
-      ctx.fillText(`ID: ${id}.${frameCount}.jpg`, x, y + boxSize + 20);
-
-      // Stop once 100 images are saved
+      // Finish registration
       if (frameCount >= maxFrames) {
         clearInterval(captureLoop);
         this.finalizeRegistration(id, name);
       }
-    }, 60);
+    }, captureIntervalTime);
   }
 
-  finalizeRegistration(id, name) {
+  updateRegistrationProgress(count, max) {
+    const percent = Math.min(Math.round((count / max) * 100), 100);
+    this.regProgressBar.style.width = `${percent}%`;
+    this.scanCountText.textContent = `${count} / ${max} Frames`;
+    this.scanPercentText.textContent = `${percent}%`;
+  }
+
+  async finalizeRegistration(id, name) {
     this.stopActiveStream();
     this.registrationActive = false;
 
-    // Add student to local database
-    this.students.push({ id, name });
-    localStorage.setItem('fras_students', JSON.stringify(this.students));
-    
-    // Set model status as untrained since new pictures were captured
-    this.modelTrained = false;
-    localStorage.setItem('fras_model_trained', 'false');
+    if (this.isConnected) {
+      // Refresh local cache representation of backend students list
+      await this.syncDataWithBackend();
+      this.modelTrained = false;
+    } else {
+      // Local
+      this.students.push({ id, name });
+      localStorage.setItem('fras_students', JSON.stringify(this.students));
+      this.modelTrained = false;
+      localStorage.setItem('fras_model_trained', 'false');
+    }
 
     // Switch views
     this.viewScanning.style.display = 'none';
     this.viewSuccess.style.display = 'block';
-    document.getElementById('success-message').innerHTML = `Student <strong>${name} (ID: ${id})</strong> has been successfully enrolled into the local database registry.`;
+    document.getElementById('success-message').innerHTML = `Student <strong>${name} (ID: ${id})</strong> has been successfully enrolled into the database registry.`;
     this.updateStats();
   }
 
@@ -384,7 +559,7 @@ class FRASPortal {
   }
 
   // --- Training Model ---
-  executeTraining() {
+  async executeTraining() {
     if (this.students.length === 0) {
       alert('No student datasets available. Please register students first.');
       return;
@@ -394,43 +569,74 @@ class FRASPortal {
     this.trainProgressSection.style.display = 'block';
     this.trainConsole.innerHTML = '<div class="log-entry">[SYSTEM] Initializing training environment...</div>';
 
-    const steps = [
-      { p: 10, text: 'Scanning local directories for registered face dataset index...' },
-      { p: 25, text: `Extracted ${this.students.length} student profile mappings from StudentDetails.csv.` },
-      { p: 40, text: 'Executing Haar Cascade face localization matrices...' },
-      { p: 60, text: 'Calculating Local Binary Pattern (LBP) histogram matrices...' },
-      { p: 80, text: 'Aligning model weight tensors and compiling histogram indices...' },
-      { p: 95, text: 'Saving compiled weights map into TrainingImageLabel/Trainner.yml...' },
-      { p: 100, text: 'Success! Training completed. compiled weights size: 2.34 MB.' }
+    // Simulated progress steps to show details
+    const logSteps = [
+      { p: 15, text: 'Scanning directory files...' },
+      { p: 35, text: 'Mapping datasets from StudentDetails registries...' },
+      { p: 60, text: 'Computing Local Binary Pattern (LBP) histogram matrices...' },
+      { p: 85, text: 'Structuring weight vectors...' }
     ];
 
-    let currentStep = 0;
-    const interval = setInterval(() => {
-      const step = steps[currentStep];
-      this.trainProgressBar.style.width = `${step.p}%`;
-      this.trainPercentText.textContent = `${step.p}%`;
-      this.trainStepText.textContent = step.text;
+    let currentLog = 0;
+    const progressTimer = setInterval(() => {
+      if (currentLog < logSteps.length) {
+        const step = logSteps[currentLog];
+        this.trainProgressBar.style.width = `${step.p}%`;
+        this.trainPercentText.textContent = `${step.p}%`;
+        this.trainStepText.textContent = step.text;
+        this.trainConsole.innerHTML += `<div class="log-entry">[LOG] ${step.text}</div>`;
+        this.trainConsole.scrollTop = this.trainConsole.scrollHeight;
+        currentLog++;
+      }
+    }, 600);
 
-      let logClass = '';
-      if (step.p === 100) logClass = 'success';
-      this.trainConsole.innerHTML += `<div class="log-entry ${logClass}">[LOG] ${step.text}</div>`;
-      this.trainConsole.scrollTop = this.trainConsole.scrollHeight;
-
-      currentStep++;
-      if (currentStep >= steps.length) {
-        clearInterval(interval);
+    if (this.isConnected) {
+      // --- ONLINE MODE: Trigger backend training ---
+      try {
+        const res = await fetch(`${this.backendUrl}/api/train`, { method: 'POST' });
+        const data = await res.json();
         
-        // Finalize
+        clearInterval(progressTimer);
+        
+        if (data.success) {
+          this.trainProgressBar.style.width = '100%';
+          this.trainPercentText.textContent = '100%';
+          this.trainStepText.textContent = 'Training complete!';
+          this.trainConsole.innerHTML += `<div class="log-entry success">[SERVER SUCCESS] ${data.message}</div>`;
+          this.trainConsole.scrollTop = this.trainConsole.scrollHeight;
+          
+          this.modelTrained = true;
+          alert('Model trained successfully on Render backend!');
+        } else {
+          this.trainConsole.innerHTML += `<div class="log-entry warning">[SERVER ERROR] ${data.message}</div>`;
+          this.trainConsole.scrollTop = this.trainConsole.scrollHeight;
+          alert(`Training Failed: ${data.message}`);
+        }
+      } catch (e) {
+        clearInterval(progressTimer);
+        this.trainConsole.innerHTML += `<div class="log-entry warning">[API ERROR] Failed to connect: ${e.message}</div>`;
+        alert(`API communication failed: ${e.message}`);
+      }
+    } else {
+      // --- OFFLINE SIMULATION MODE ---
+      setTimeout(() => {
+        clearInterval(progressTimer);
+        this.trainProgressBar.style.width = '100%';
+        this.trainPercentText.textContent = '100%';
+        this.trainStepText.textContent = 'Compilation complete!';
+        this.trainConsole.innerHTML += `<div class="log-entry success">[SYSTEM] Saved simulated weights locally.</div>`;
+        this.trainConsole.scrollTop = this.trainConsole.scrollHeight;
+        
         this.modelTrained = true;
         localStorage.setItem('fras_model_trained', 'true');
-        
-        setTimeout(() => {
-          this.btnStartTraining.disabled = false;
-          alert('Model training completed! System ready for live verification.');
-          this.updateStats();
-        }, 800);
-      }
-    }, 800);
+        alert('Simulation model compiled successfully.');
+      }, 3000);
+    }
+
+    setTimeout(() => {
+      this.btnStartTraining.disabled = false;
+      this.updateStats();
+    }, 3200);
   }
 
   // --- Live Recognition & Attendance Logs ---
@@ -447,7 +653,7 @@ class FRASPortal {
     this.btnStartRec.disabled = true;
     this.btnStopRec.disabled = false;
     this.placeholderRec.classList.add('hidden');
-    this.recStatusBadge.textContent = 'Scanning Active';
+    this.recStatusBadge.textContent = this.isConnected ? 'Server Matching Active' : 'Offline Simulation';
     this.recStatusBadge.className = 'badge badge-success';
     this.recScannerGrid.classList.add('active');
 
@@ -477,64 +683,139 @@ class FRASPortal {
 
   runRecognitionLoop() {
     const ctx = this.canvasRec.getContext('2d');
-    let frameTicks = 0;
+    let latestBox = null;
+    let boxText = "LOCATING FACES...";
+    let boxColor = "#00F2FE";
 
+    // Sub-loop for drawing the bounding box smoothly at 60fps
     const renderOverlay = () => {
       if (!this.recognitionActive) return;
 
-      frameTicks++;
       ctx.clearRect(0, 0, this.canvasRec.width, this.canvasRec.height);
 
-      // Bounding box dimensions
-      const boxWidth = 220;
-      const boxHeight = 220;
-      // Float bounding box slightly
-      const x = (this.canvasRec.width - boxWidth) / 2 + Math.sin(frameTicks * 0.05) * 12;
-      const y = (this.canvasRec.height - boxHeight) / 2 + Math.cos(frameTicks * 0.04) * 8;
+      if (latestBox) {
+        const { x, y, width, height } = latestBox;
+        ctx.strokeStyle = boxColor;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = boxColor;
+        ctx.strokeRect(x, y, width, height);
 
-      // Draw detection box
-      ctx.strokeStyle = '#00F2FE';
-      ctx.lineWidth = 3;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = 'rgba(0, 242, 254, 0.4)';
-      ctx.strokeRect(x, y, boxWidth, boxHeight);
-
-      // Scanning overlay info
-      ctx.fillStyle = '#00F2FE';
-      ctx.font = 'bold 13px Outfit, sans-serif';
-      ctx.shadowBlur = 0;
-      ctx.fillText('FACIAL TRACKING ACTIVE', x, y - 12);
+        ctx.fillStyle = boxColor;
+        ctx.font = 'bold 12px Outfit, sans-serif';
+        ctx.shadowBlur = 0;
+        ctx.fillText(boxText, x, y - 10);
+      } else {
+        // Draw idle scan frame in center
+        const boxSize = 220;
+        const x = (this.canvasRec.width - boxSize) / 2;
+        const y = (this.canvasRec.height - boxSize) / 2;
+        ctx.strokeStyle = "rgba(0, 242, 254, 0.2)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, boxSize, boxSize);
+      }
 
       requestAnimationFrame(renderOverlay);
     };
 
-    // Begin drawing box overlay
     requestAnimationFrame(renderOverlay);
 
-    // Recognition simulator logic: identifies user every 3 seconds
-    this.recognitionInterval = setInterval(() => {
+    const matchIntervalTime = this.isConnected ? 1800 : 3000;
+
+    // Recognition check loop
+    this.recognitionInterval = setInterval(async () => {
       if (this.students.length === 0) return;
 
-      // 80% chance of matching a registered student, 20% unknown
-      const isRecognized = Math.random() < 0.8;
-      const confidence = Math.round(isRecognized ? 68 + Math.random() * 26 : 20 + Math.random() * 25);
-      
-      let identifiedStudent = null;
-      if (isRecognized) {
-        identifiedStudent = this.students[Math.floor(Math.random() * this.students.length)];
-      }
+      const frameData = this.captureVideoFrame(this.videoRec);
 
-      const today = new Date().toISOString().split('T')[0];
-      const timeNow = new Date().toTimeString().split(' ')[0];
+      if (this.isConnected) {
+        // --- ONLINE MODE: Query Render API ---
+        try {
+          const res = await fetch(`${this.backendUrl}/api/recognize`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: frameData })
+          });
+          const data = await res.json();
+          
+          if (data.box) {
+            latestBox = data.box;
+          } else {
+            latestBox = null;
+          }
 
-      if (isRecognized && identifiedStudent) {
-        // Match found! Logs attendance
-        const alreadyLogged = this.logs.some(log => log.id === identifiedStudent.id && log.date === today);
+          if (data.success) {
+            // Recognized student
+            boxText = `${data.id} - ${data.name} [Pass]`.toUpperCase();
+            boxColor = "#10B981"; // Success Green
+            
+            // Log session entry if newly logged in session
+            const newLog = {
+              id: data.id,
+              name: data.name,
+              date: new Date().toISOString().split('T')[0],
+              time: new Date().toTimeString().split(' ')[0],
+              status: 'Present'
+            };
+            
+            this.logs.unshift(newLog);
+            this.sessionLogs.unshift(newLog);
+            this.addSessionLogItem(newLog, data.confidence);
+            this.updateStats();
 
-        if (!alreadyLogged) {
+          } else if (data.name === "Unknown") {
+            // Face detected but unknown
+            boxText = `CONFIDENCE LOW: ${data.confidence}%`.toUpperCase();
+            boxColor = "#EF4444"; // Warning Red
+            
+            this.addSessionLogItem({
+              id: 'Unknown',
+              name: 'Unknown Face',
+              time: new Date().toTimeString().split(' ')[0],
+              status: 'Failed'
+            }, data.confidence);
+          } else {
+            // No face detected
+            latestBox = null;
+          }
+        } catch (e) {
+          console.error("API recognition failed:", e);
+          boxText = "API CONNECTION TIMEOUT";
+          boxColor = "#F59E0B";
+        }
+
+      } else {
+        // --- OFFLINE SIMULATION MODE ---
+        const isRecognized = Math.random() < 0.8;
+        const confidence = Math.round(isRecognized ? 68 + Math.random() * 26 : 20 + Math.random() * 25);
+        
+        let idVal = 'Unknown';
+        let nameVal = 'Unknown User';
+        
+        if (isRecognized) {
+          const randStudent = this.students[Math.floor(Math.random() * this.students.length)];
+          idVal = randStudent.id;
+          nameVal = randStudent.name;
+        }
+
+        const boxSize = 220;
+        latestBox = {
+          x: (this.canvasRec.width - boxSize) / 2,
+          y: (this.canvasRec.height - boxSize) / 2,
+          width: boxSize,
+          height: boxSize
+        };
+
+        const today = new Date().toISOString().split('T')[0];
+        const timeNow = new Date().toTimeString().split(' ')[0];
+
+        if (isRecognized) {
+          boxText = `${idVal} - ${nameVal} [Pass]`.toUpperCase();
+          boxColor = "#10B981";
+
           const newLog = {
-            id: identifiedStudent.id,
-            name: identifiedStudent.name,
+            id: idVal,
+            name: nameVal,
             date: today,
             time: timeNow,
             status: 'Present'
@@ -545,17 +826,19 @@ class FRASPortal {
           this.sessionLogs.unshift(newLog);
           this.addSessionLogItem(newLog, confidence);
           this.updateStats();
+        } else {
+          boxText = `UNKNOWN FACE: ${confidence}%`.toUpperCase();
+          boxColor = "#EF4444";
+
+          this.addSessionLogItem({
+            id: 'Unknown',
+            name: 'Unknown User',
+            time: timeNow,
+            status: 'Failed'
+          }, confidence);
         }
-      } else {
-        // Unknown user detection event
-        this.addSessionLogItem({
-          id: 'Unknown',
-          name: 'Unknown User',
-          time: timeNow,
-          status: 'Failed'
-        }, confidence);
       }
-    }, 3000);
+    }, matchIntervalTime);
   }
 
   addSessionLogItem(log, confidence) {
@@ -590,13 +873,11 @@ class FRASPortal {
 
     list.insertBefore(item, list.firstChild);
 
-    // Fade animation trigger
     setTimeout(() => {
       item.style.opacity = '1';
       item.style.transform = 'translateY(0)';
     }, 50);
 
-    // Truncate list size to keep layout clean
     if (list.children.length > 5) {
       list.removeChild(list.lastChild);
     }
@@ -695,7 +976,7 @@ class FRASPortal {
     document.body.removeChild(link);
   }
 
-  triggerAutoMail() {
+  async triggerAutoMail() {
     if (this.logs.length === 0) {
       alert('Cannot send mail. The attendance roster is currently empty.');
       return;
@@ -703,18 +984,36 @@ class FRASPortal {
 
     const email = this.inputSMTPReceiver.value.trim();
     const sender = this.inputSMTPHost.value.trim();
+    const pass = this.inputSMTPHost.value.trim() === 'youremail@email.com' ? '' : this.inputSMTPHost.value;
     
     this.btnTriggerEmail.disabled = true;
     this.btnTriggerEmail.textContent = 'Mailing Report...';
 
-    setTimeout(() => {
-      this.btnTriggerEmail.disabled = false;
-      this.btnTriggerEmail.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-        Auto Mail Report
-      `;
-      alert(`Auto-attachment report compiled!\nCSV sheet mailed from "${sender}" to "${email}" successfully.`);
-    }, 1500);
+    if (this.isConnected) {
+      // --- ONLINE MODE: Trigger backend email ---
+      try {
+        const res = await fetch(`${this.backendUrl}/api/send_email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sender, password: pass, receiver: email })
+        });
+        const data = await res.json();
+        alert(data.message);
+      } catch (err) {
+        alert(`API mail failed: ${err.message}`);
+      }
+    } else {
+      // --- OFFLINE SIMULATION MODE ---
+      setTimeout(() => {
+        alert(`Auto-attachment report compiled!\nCSV sheet mailed from "${sender}" to "${email}" successfully.`);
+      }, 1500);
+    }
+
+    this.btnTriggerEmail.disabled = false;
+    this.btnTriggerEmail.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+      Auto Mail Report
+    `;
   }
 }
 
