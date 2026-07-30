@@ -755,3 +755,185 @@ body {
   font-size: 14px;
   margin-bottom: 24px;
 }
+
+/* Mobile Header & Overlay Base Styles */
+.mobile-header {
+  display: none; /* Hidden on desktop */
+  height: 64px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  width: 100%;
+}
+
+.menu-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-fast);
+}
+
+.menu-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-primary);
+}
+
+.menu-toggle-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-icon-sm {
+  width: 32px;
+  height: 32px;
+  background: var(--grad-primary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg-primary);
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: var(--shadow-glow);
+}
+
+.mobile-brand-title {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: var(--grad-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(8, 12, 20, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 95;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Responsive Design Media Queries */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  .mobile-header {
+    display: flex; /* Show on mobile */
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    padding: 20px;
+    height: calc(100vh - 64px); /* Subtract mobile-header height */
+  }
+
+  .page-header h2 {
+    font-size: 22px;
+  }
+
+  /* Force multi-column sections to stack */
+  .dashboard-layout,
+  .registration-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  /* Make filters bar responsive */
+  .filter-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-input {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .filter-bar div[style*="margin-left: auto"] {
+    margin-left: 0 !important;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .filter-bar div[style*="margin-left: auto"] .btn {
+    width: 100%;
+  }
+
+  /* Make sure webcam layout functions nicely on mobile */
+  .camera-card {
+    max-width: 100%;
+  }
+
+  /* Success screen centering & spacing */
+  .success-screen {
+    padding: 20px 10px;
+  }
+
+  /* Buttons full width on mobile inside layout elements */
+  .registration-container .btn,
+  .dashboard-panel .btn,
+  .filter-bar .btn {
+    width: 100%;
+  }
+
+  /* Reset flex alignment on certain layouts if needed */
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .panel-header .btn {
+    width: auto;
+  }
+}

@@ -43,9 +43,12 @@ class FRASPortal {
   }
 
   initElements() {
-    // Nav Items
+    // Nav & Mobile Sidebar Toggle Elements
     this.navItems = document.querySelectorAll('.nav-item');
     this.pageViews = document.querySelectorAll('.page-view');
+    this.sidebar = document.querySelector('.sidebar');
+    this.btnMenuToggle = document.getElementById('menu-toggle-btn');
+    this.sidebarOverlay = document.getElementById('sidebar-overlay');
 
     // Stats
     this.statTotalStudents = document.getElementById('stats-total-students');
@@ -126,6 +129,19 @@ class FRASPortal {
         this.switchTab(target);
       });
     });
+
+    // Mobile Navigation Toggle Events
+    if (this.btnMenuToggle && this.sidebarOverlay) {
+      this.btnMenuToggle.addEventListener('click', () => {
+        this.sidebar.classList.toggle('open');
+        this.sidebarOverlay.classList.toggle('active');
+      });
+
+      this.sidebarOverlay.addEventListener('click', () => {
+        this.sidebar.classList.remove('open');
+        this.sidebarOverlay.classList.remove('active');
+      });
+    }
 
     // Check camera events
     this.btnStartCheckCam.addEventListener('click', () => this.startCheckCamera());
@@ -257,6 +273,12 @@ class FRASPortal {
     this.stopCheckCamera();
     this.stopRecognition();
     this.cancelRegistration();
+
+    // Close mobile navigation drawer if open
+    if (this.sidebar && this.sidebarOverlay) {
+      this.sidebar.classList.remove('open');
+      this.sidebarOverlay.classList.remove('active');
+    }
 
     this.navItems.forEach(item => {
       item.classList.toggle('active', item.getAttribute('data-target') === tabId);

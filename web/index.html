@@ -9,6 +9,25 @@
 <body>
 
   <div class="app-container">
+    <!-- Sidebar Backdrop Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+      <button class="menu-toggle-btn" id="menu-toggle-btn" aria-label="Toggle Navigation Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <div class="mobile-brand">
+        <div class="brand-icon-sm">FR</div>
+        <span class="mobile-brand-title">FRAS Portal</span>
+      </div>
+      <div style="width: 40px;"></div> <!-- Spacer to visually center the brand title -->
+    </header>
+
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="brand-section">
