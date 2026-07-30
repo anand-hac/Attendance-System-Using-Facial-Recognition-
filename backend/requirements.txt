@@ -6,3 +6,5 @@ Pillow
 yagmail
 gunicorn
 opencv-contrib-python-headless
+pymongo
+dnspython

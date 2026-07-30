@@ -11,7 +11,7 @@ class FRASPortal {
     this.activeStream = null;
     
     // API connection state
-    this.backendUrl = localStorage.getItem('fras_backend_url') || '';
+    this.backendUrl = localStorage.getItem('fras_backend_url') || 'https://fras-backend-api.onrender.com';
     this.isConnected = false;
 
     // Running states
