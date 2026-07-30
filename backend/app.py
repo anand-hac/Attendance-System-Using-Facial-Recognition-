@@ -28,7 +28,7 @@ if MONGO_URI:
     try:
         # Connect to MongoDB Atlas
         client = pymongo.MongoClient(MONGO_URI)
-        db = client['AttendanceSystem']
+        db = client['attendanceSystem']
         # Trigger connection check
         client.admin.command('ping')
         print("[INFO] Connected to MongoDB Atlas successfully.")
@@ -39,7 +39,7 @@ else:
     try:
         # Fallback to local MongoDB
         client = pymongo.MongoClient("mongodb://localhost:27017/")
-        db = client['AttendanceSystem']
+        db = client['attendanceSystem']
         client.admin.command('ping')
         print("[INFO] Connected to local MongoDB.")
     except Exception as e:

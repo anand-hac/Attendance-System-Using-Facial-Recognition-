@@ -416,7 +416,7 @@ class FRASPortal {
     this.runRegistrationCapture(id, name);
   }
 
-  runRegistrationCapture(id, name) {
+  async runRegistrationCapture(id, name) {
     let frameCount = 0;
     const maxFrames = 100;
     const ctx = this.canvasReg.getContext('2d');
@@ -425,15 +425,12 @@ class FRASPortal {
     
     const captureIntervalTime = this.isConnected ? 160 : 60; // Slower interval for API roundtrips
     
-    const captureLoop = setInterval(async () => {
-      if (!this.registrationActive) {
-        clearInterval(captureLoop);
-        return;
-      }
-
+    while (this.registrationActive && frameCount < maxFrames) {
+      const startTime = Date.now();
+      
       // Grab base64 image frame
       const frameData = this.captureVideoFrame(this.videoReg);
-
+      
       if (this.isConnected) {
         // --- ONLINE MODE: Send to Render server ---
         try {
@@ -474,6 +471,7 @@ class FRASPortal {
           } else {
             // No face detected, output warning in console
             this.regConsole.innerHTML += `<div class="log-entry warning">[WARNING] ${uploadData.message || "No face located."} Adjust position.</div>`;
+            ctx.clearRect(0, 0, this.canvasReg.width, this.canvasReg.height);
             this.regConsole.scrollTop = this.regConsole.scrollHeight;
           }
         } catch (e) {
@@ -506,12 +504,17 @@ class FRASPortal {
         ctx.fillText(`SIMULATED BOX: [${Math.round(x)}, ${Math.round(y)}]`, x, y - 8);
       }
 
-      // Finish registration
-      if (frameCount >= maxFrames) {
-        clearInterval(captureLoop);
-        this.finalizeRegistration(id, name);
+      // Delay to respect captureIntervalTime
+      const elapsed = Date.now() - startTime;
+      const delay = Math.max(0, captureIntervalTime - elapsed);
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
-    }, captureIntervalTime);
+    }
+
+    if (this.registrationActive && frameCount >= maxFrames) {
+      this.finalizeRegistration(id, name);
+    }
   }
 
   updateRegistrationProgress(count, max) {
@@ -721,122 +724,128 @@ class FRASPortal {
     requestAnimationFrame(renderOverlay);
 
     const matchIntervalTime = this.isConnected ? 1800 : 3000;
+    let isProcessing = false;
 
     // Recognition check loop
     this.recognitionInterval = setInterval(async () => {
-      if (this.students.length === 0) return;
+      if (this.students.length === 0 || isProcessing) return;
+      isProcessing = true;
 
       const frameData = this.captureVideoFrame(this.videoRec);
 
-      if (this.isConnected) {
-        // --- ONLINE MODE: Query Render API ---
-        try {
-          const res = await fetch(`${this.backendUrl}/api/recognize`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: frameData })
-          });
-          const data = await res.json();
-          
-          if (data.box) {
-            latestBox = data.box;
-          } else {
-            latestBox = null;
+      try {
+        if (this.isConnected) {
+          // --- ONLINE MODE: Query Render API ---
+          try {
+            const res = await fetch(`${this.backendUrl}/api/recognize`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image: frameData })
+            });
+            const data = await res.json();
+            
+            if (data.box) {
+              latestBox = data.box;
+            } else {
+              latestBox = null;
+            }
+
+            if (data.success) {
+              // Recognized student
+              boxText = `${data.id} - ${data.name} [Pass]`.toUpperCase();
+              boxColor = "#10B981"; // Success Green
+              
+              // Log session entry if newly logged in session
+              const newLog = {
+                id: data.id,
+                name: data.name,
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toTimeString().split(' ')[0],
+                status: 'Present'
+              };
+              
+              this.logs.unshift(newLog);
+              this.sessionLogs.unshift(newLog);
+              this.addSessionLogItem(newLog, data.confidence);
+              this.updateStats();
+
+            } else if (data.name === "Unknown") {
+              // Face detected but unknown
+              boxText = `CONFIDENCE LOW: ${data.confidence}%`.toUpperCase();
+              boxColor = "#EF4444"; // Warning Red
+              
+              this.addSessionLogItem({
+                id: 'Unknown',
+                name: 'Unknown Face',
+                time: new Date().toTimeString().split(' ')[0],
+                status: 'Failed'
+              }, data.confidence);
+            } else {
+              // No face detected
+              latestBox = null;
+            }
+          } catch (e) {
+            console.error("API recognition failed:", e);
+            boxText = "API CONNECTION TIMEOUT";
+            boxColor = "#F59E0B";
           }
 
-          if (data.success) {
-            // Recognized student
-            boxText = `${data.id} - ${data.name} [Pass]`.toUpperCase();
-            boxColor = "#10B981"; // Success Green
-            
-            // Log session entry if newly logged in session
+        } else {
+          // --- OFFLINE SIMULATION MODE ---
+          const isRecognized = Math.random() < 0.8;
+          const confidence = Math.round(isRecognized ? 68 + Math.random() * 26 : 20 + Math.random() * 25);
+          
+          let idVal = 'Unknown';
+          let nameVal = 'Unknown User';
+          
+          if (isRecognized) {
+            const randStudent = this.students[Math.floor(Math.random() * this.students.length)];
+            idVal = randStudent.id;
+            nameVal = randStudent.name;
+          }
+
+          const boxSize = 220;
+          latestBox = {
+            x: (this.canvasRec.width - boxSize) / 2,
+            y: (this.canvasRec.height - boxSize) / 2,
+            width: boxSize,
+            height: boxSize
+          };
+
+          const today = new Date().toISOString().split('T')[0];
+          const timeNow = new Date().toTimeString().split(' ')[0];
+
+          if (isRecognized) {
+            boxText = `${idVal} - ${nameVal} [Pass]`.toUpperCase();
+            boxColor = "#10B981";
+
             const newLog = {
-              id: data.id,
-              name: data.name,
-              date: new Date().toISOString().split('T')[0],
-              time: new Date().toTimeString().split(' ')[0],
+              id: idVal,
+              name: nameVal,
+              date: today,
+              time: timeNow,
               status: 'Present'
             };
-            
             this.logs.unshift(newLog);
-            this.sessionLogs.unshift(newLog);
-            this.addSessionLogItem(newLog, data.confidence);
-            this.updateStats();
-
-          } else if (data.name === "Unknown") {
-            // Face detected but unknown
-            boxText = `CONFIDENCE LOW: ${data.confidence}%`.toUpperCase();
-            boxColor = "#EF4444"; // Warning Red
+            localStorage.setItem('fras_logs', JSON.stringify(this.logs));
             
+            this.sessionLogs.unshift(newLog);
+            this.addSessionLogItem(newLog, confidence);
+            this.updateStats();
+          } else {
+            boxText = `UNKNOWN FACE: ${confidence}%`.toUpperCase();
+            boxColor = "#EF4444";
+
             this.addSessionLogItem({
               id: 'Unknown',
-              name: 'Unknown Face',
-              time: new Date().toTimeString().split(' ')[0],
+              name: 'Unknown User',
+              time: timeNow,
               status: 'Failed'
-            }, data.confidence);
-          } else {
-            // No face detected
-            latestBox = null;
+            }, confidence);
           }
-        } catch (e) {
-          console.error("API recognition failed:", e);
-          boxText = "API CONNECTION TIMEOUT";
-          boxColor = "#F59E0B";
         }
-
-      } else {
-        // --- OFFLINE SIMULATION MODE ---
-        const isRecognized = Math.random() < 0.8;
-        const confidence = Math.round(isRecognized ? 68 + Math.random() * 26 : 20 + Math.random() * 25);
-        
-        let idVal = 'Unknown';
-        let nameVal = 'Unknown User';
-        
-        if (isRecognized) {
-          const randStudent = this.students[Math.floor(Math.random() * this.students.length)];
-          idVal = randStudent.id;
-          nameVal = randStudent.name;
-        }
-
-        const boxSize = 220;
-        latestBox = {
-          x: (this.canvasRec.width - boxSize) / 2,
-          y: (this.canvasRec.height - boxSize) / 2,
-          width: boxSize,
-          height: boxSize
-        };
-
-        const today = new Date().toISOString().split('T')[0];
-        const timeNow = new Date().toTimeString().split(' ')[0];
-
-        if (isRecognized) {
-          boxText = `${idVal} - ${nameVal} [Pass]`.toUpperCase();
-          boxColor = "#10B981";
-
-          const newLog = {
-            id: idVal,
-            name: nameVal,
-            date: today,
-            time: timeNow,
-            status: 'Present'
-          };
-          this.logs.unshift(newLog);
-          localStorage.setItem('fras_logs', JSON.stringify(this.logs));
-          
-          this.sessionLogs.unshift(newLog);
-          this.addSessionLogItem(newLog, confidence);
-          this.updateStats();
-        } else {
-          boxText = `UNKNOWN FACE: ${confidence}%`.toUpperCase();
-          boxColor = "#EF4444";
-
-          this.addSessionLogItem({
-            id: 'Unknown',
-            name: 'Unknown User',
-            time: timeNow,
-            status: 'Failed'
-          }, confidence);
-        }
+      } finally {
+        isProcessing = false;
       }
     }, matchIntervalTime);
   }
